@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackSense — Railway Track Inspection System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --navy-900:#0E2237;
+  --navy-800:#153450;
+  --navy-700:#1C4260;
+  --navy-500:#3A6285;
+  --navy-200:#C6D6E2;
+  --orange-600:#C46A26;
+  --orange-500:#D9822F;
+  --orange-100:#FBEAD8;
+  --ink-900:#16212C;
+  --ink-700:#3B4A58;
+  --ink-500:#647380;
+  --ink-300:#9AA7B2;
+  --line:#DCE3E9;
+  --line-soft:#EAEFF3;
+  --surface:#FFFFFF;
+  --canvas:#F3F5F7;
+  --green-700:#256B47;
+  --green-500:#2E9E5B;
+  --green-100:#E1F3E9;
+  --red-700:#8E2A22;
+  --red-500:#C23B32;
+  --red-100:#FBE4E1;
+  --amber-700:#8A5A16;
+  --amber-500:#D9A233;
+  --amber-100:#FBF0DA;
+  --radius-s:4px;
+  --radius-m:8px;
+  --shadow-1: 0 1px 2px rgba(14,34,55,.06), 0 1px 1px rgba(14,34,55,.04);
+  --shadow-2: 0 8px 24px rgba(14,34,55,.14);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:var(--canvas);
+  color:var(--ink-900);
+  font-family:"IBM Plex Sans",-apple-system,Segoe UI,Roboto,sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;}
+.mono{font-family:"IBM Plex Mono",monospace;}
+.serif{font-family:"Fraunces",Georgia,serif;}
+::selection{background:var(--orange-100);}
+button{cursor:pointer;}
+button:disabled{cursor:not-allowed;}
+a{color:inherit;}
+:focus-visible{outline:2px solid var(--orange-500);outline-offset:2px;}
+
+/* ============ APP SHELL ============ */
+#app{display:flex;min-height:100vh;}
+
+/* ---- Sidebar ---- */
+.sidebar{
+  width:236px;flex:0 0 236px;
+  background:var(--navy-900);
+  color:#DCE7F0;
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+}
+.sidebar-brand{
+  padding:22px 20px 18px 20px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.sidebar-brand .word{
+  font-family:"Fraunces",Georgia,serif;
+  font-weight:600;
+  font-size:22px;
+  color:#fff;
+  letter-spacing:.2px;
+}
+.sidebar-brand .sub{
+  margin-top:3px;
+  font-size:11px;
+  color:#8FA6BC;
+  letter-spacing:.4px;
+}
+.sidebar-nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:2px;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--radius-s);
+  color:#B9CADA;font-size:13.5px;font-weight:500;
+  background:transparent;border:none;text-align:left;width:100%;
+  transition:background .12s ease, color .12s ease;
+}
+.nav-item svg{flex:0 0 18px;width:18px;height:18px;opacity:.85;}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav-item.active{background:var(--navy-700);color:#fff;}
+.nav-item.active svg{opacity:1;}
+.nav-item:disabled{opacity:.35;cursor:not-allowed;}
+.nav-item:disabled:hover{background:transparent;color:#B9CADA;}
+.nav-divider{height:1px;background:rgba(255,255,255,.08);margin:10px 12px;}
+.nav-label{
+  padding:8px 14px 4px 14px;font-size:10.5px;letter-spacing:.6px;color:#6E86A0;font-weight:600;
+}
+.sidebar-foot{
+  padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);
+  font-size:12px;color:#8FA6BC;display:flex;align-items:center;gap:8px;
+}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.dot.on{background:var(--green-500);box-shadow:0 0 0 3px rgba(46,158,91,.25);}
+.dot.off{background:var(--ink-300);}
+.dot.warn{background:var(--amber-500);box-shadow:0 0 0 3px rgba(217,162,51,.25);}
+.dot.err{background:var(--red-500);box-shadow:0 0 0 3px rgba(194,59,50,.25);}
+
+/* ---- Main column ---- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{
+  height:60px;flex:0 0 60px;
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;position:sticky;top:0;z-index:5;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-title{font-size:16px;font-weight:600;color:var(--ink-900);}
+.topbar-crumb{font-size:12px;color:var(--ink-500);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:100px;font-size:12px;font-weight:600;
+  border:1px solid var(--line);background:var(--canvas);color:var(--ink-700);
+}
+.pill .dot{width:6px;height:6px;}
+.pill.ready{background:var(--green-100);color:var(--green-700);border-color:transparent;}
+.pill.running{background:var(--orange-100);color:var(--orange-600);border-color:transparent;}
+.pill.fault{background:var(--red-100);color:var(--red-700);border-color:transparent;}
+.pill.paused{background:var(--amber-100);color:var(--amber-700);border-color:transparent;}
+.pill.neutral{background:var(--navy-200);color:var(--navy-800);border-color:transparent;}
+
+.content{flex:1;padding:26px 28px 60px 28px;max-width:1180px;width:100%;margin:0 auto;}
+
+/* ============ GENERIC COMPONENTS ============ */
+.h1{font-family:"Fraunces",Georgia,serif;font-size:26px;font-weight:600;margin:0 0 4px 0;color:var(--ink-900);}
+.lead{color:var(--ink-500);font-size:13.5px;margin:0 0 22px 0;}
+.section-title{font-size:12px;letter-spacing:.4px;font-weight:600;color:var(--ink-500);margin:0 0 12px 0;}
+
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);
+  box-shadow:var(--shadow-1);
+}
+.card-pad{padding:18px 20px;}
+
+.grid{display:grid;gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:980px){.grid-4{grid-template-columns:repeat(2,1fr);}.grid-3{grid-template-columns:repeat(2,1fr);}}
+
+.stat{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);
+  padding:14px 16px;display:flex;flex-direction:column;gap:6px;
+}
+.stat-label{font-size:11.5px;color:var(--ink-500);font-weight:600;letter-spacing:.2px;display:flex;align-items:center;gap:6px;}
+.stat-value{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:600;color:var(--ink-900);}
+.stat-value.small{font-size:15px;}
+.stat-sub{font-size:11.5px;color:var(--ink-300);}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 16px;border-radius:var(--radius-s);font-size:13.5px;font-weight:600;
+  border:1px solid transparent;transition:filter .1s ease, background .1s ease;white-space:nowrap;
+}
+.btn:disabled{opacity:.45;}
+.btn-primary{background:var(--navy-700);color:#fff;}
+.btn-primary:hover:not(:disabled){background:var(--navy-800);}
+.btn-accent{background:var(--orange-500);color:#fff;}
+.btn-accent:hover:not(:disabled){background:var(--orange-600);}
+.btn-danger{background:var(--red-500);color:#fff;}
+.btn-danger:hover:not(:disabled){background:var(--red-700);}
+.btn-outline{background:var(--surface);color:var(--ink-700);border-color:var(--line);}
+.btn-outline:hover:not(:disabled){background:var(--canvas);}
+.btn-ghost{background:transparent;color:var(--ink-700);border-color:transparent;}
+.btn-ghost:hover:not(:disabled){background:var(--line-soft);}
+.btn-lg{padding:14px 22px;font-size:14.5px;}
+.btn-block{width:100%;}
+.btn-sm{padding:6px 11px;font-size:12.5px;}
+
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;}
+.badge.green{background:var(--green-100);color:var(--green-700);}
+.badge.red{background:var(--red-100);color:var(--red-700);}
+.badge.amber{background:var(--amber-100);color:var(--amber-700);}
+.badge.neutral{background:var(--line-soft);color:var(--ink-500);}
+
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:12px;font-weight:600;color:var(--ink-700);}
+.field input{
+  padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-s);
+  font-size:13.5px;transition:border .12s ease;
+}
+.field input:focus{outline:none;border-color:var(--orange-500);}
+
+.table-container{overflow-x:auto;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--canvas);font-weight:600;color:var(--ink-700);}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--line-soft);}
+.data-table tr:hover{background:var(--line-soft);}
+
+.defect-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line-soft);}
+.defect-type{color:var(--ink-700);font-weight:500;}
+.defect-count{color:var(--ink-500);font-family:"IBM Plex Mono",monospace;font-weight:600;}
+
+.report-export{display:flex;gap:8px;}
+
+/* ---- AI Detection screen ---- */
+.dropzone{
+  border:2px dashed var(--line);border-radius:var(--radius-m);
+  padding:28px;text-align:center;background:var(--canvas);
+  cursor:pointer;transition:border-color .12s ease, background .12s ease;
+}
+.dropzone:hover{border-color:var(--orange-500);background:var(--orange-100);}
+.dropzone svg{width:30px;height:30px;color:var(--ink-300);margin-bottom:8px;}
+.dropzone .dz-title{font-weight:600;color:var(--ink-700);font-size:13.5px;}
+.dropzone .dz-sub{color:var(--ink-500);font-size:12px;margin-top:3px;}
+.preview-wrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+.preview-img{
+  max-width:280px;max-height:280px;border-radius:var(--radius-m);
+  border:1px solid var(--line);display:block;object-fit:contain;background:#000;
+}
+.prob-row{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.prob-label{width:150px;flex:0 0 150px;font-size:12.5px;color:var(--ink-700);font-weight:500;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prob-track{flex:1;height:8px;border-radius:100px;background:var(--line-soft);overflow:hidden;}
+.prob-fill{height:100%;border-radius:100px;background:var(--navy-500);}
+.prob-fill.top{background:var(--orange-500);}
+.prob-pct{width:52px;flex:0 0 52px;text-align:right;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-700);}
+.result-headline{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.result-headline .rh-class{font-family:"Fraunces",Georgia,serif;font-size:22px;font-weight:600;color:var(--ink-900);}
+.result-headline .rh-conf{font-family:"IBM Plex Mono",monospace;font-size:15px;color:var(--ink-500);}
+.spinner{
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+  animation:spin .7s linear infinite;display:inline-block;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.hint-banner{
+  background:var(--orange-100);color:var(--orange-600);border-radius:var(--radius-s);
+  padding:8px 12px;font-size:12px;margin-bottom:16px;
+}
+.error-banner{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--red-100);color:var(--red-700);border-radius:var(--radius-s);
+  padding:10px 14px;font-size:13px;margin-bottom:16px;font-weight:500;
+}
+.error-banner button{
+  background:transparent;border:none;color:var(--red-700);font-weight:700;
+  font-size:15px;line-height:1;padding:2px 4px;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="word">TrackSense</div>
+      <div class="sub">Rail Inspection</div>
+    </div>
+    <div class="sidebar-nav" id="nav">
+      <button class="nav-item active" data-screen="dashboard">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-screen="new-inspection">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        New Inspection
+      </button>
+      <button class="nav-item" data-screen="monitor" id="monitorBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C6.48 4 2 7.06 2 10.5S6.48 17 12 17s10-3.06 10-6.5S17.52 4 12 4zm0 9c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>
+        Live Monitor
+      </button>
+      <button class="nav-item" data-screen="reports">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-8-6z"/></svg>
+        Reports
+      </button>
+      <div class="nav-divider"></div>
+      <div class="nav-label">AI MODEL</div>
+      <button class="nav-item" data-screen="ai-detect">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a2 2 0 0 1 2 2v1.06A7.99 7.99 0 0 1 19.94 11H21a2 2 0 0 1 0 4h-1.06A7.99 7.99 0 0 1 14 20.94V22h-4v-1.06A7.99 7.99 0 0 1 4.06 15H3a2 2 0 0 1 0-4h1.06A7.99 7.99 0 0 1 10 5.06V4a2 2 0 0 1 2-2zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>
+        AI Detection
+      </button>
+    </div>
+    <div class="sidebar-foot">
+      <div class="dot on"></div>
+      System Ready
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title" id="pageTitle">Dashboard</div>
+        <div class="topbar-crumb" id="pageCrumb"></div>
+      </div>
+      <div class="topbar-right">
+        <div class="pill ready" id="statusPill"><div class="dot on"></div>Ready</div>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<script>
+const API_BASE = window.location.origin + '/api';
+
+const state = {
+  screen: 'dashboard',
+  mode: 'autonomous',
+  cfg: { startKP: '0+000', targetDistance: 1000 },
+  session: [],
+  live: {
+    inspectionId: null,
+    chainage: '0+000',
+    distance: 0,
+    elapsedSec: 0,
+    detections: [],
+    rc: { connected: false }
+  },
+  reportOpenId: null,
+  globalError: null,
+  detect: {
+    file: null,
+    previewUrl: null,
+    loading: false,
+    result: null,
+    error: null
+  }
+};
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API_BASE}/stats`);
+    const data = await res.json();
+    state.session = data.recent;
+  } catch (err) {
+    console.error('Failed to load stats:', err);
+  }
+}
+
+async function loadInspections() {
+  try {
+    const res = await fetch(`${API_BASE}/inspections`);
+    state.session = await res.json();
+  } catch (err) {
+    console.error('Failed to load inspections:', err);
+  }
+}
+
+async function createInspection() {
+  const id = 'INS-' + Date.now();
+  try {
+    const res = await fetch(`${API_BASE}/inspections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        mode: state.mode,
+        section: 'Section ' + Math.floor(Math.random() * 100),
+        startKP: state.cfg.startKP,
+        targetDistance: Number(state.cfg.targetDistance)
+      })
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.detail ? JSON.stringify(errBody.detail) : `Request failed (${res.status})`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to create inspection:', err);
+    state.globalError = 'Could not start inspection: ' + (err.message || 'network error');
+    render();
+    return null;
+  }
+}
+
+async function completeInspection(inspectionId, defects) {
+  try {
+    const res = await fetch(`${API_BASE}/inspections/${inspectionId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endKP: state.cfg.startKP,
+        defects
+      })
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.detail ? JSON.stringify(errBody.detail) : `Request failed (${res.status})`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to complete inspection:', err);
+    state.globalError = 'Could not save inspection: ' + (err.message || 'network error');
+    render();
+    return null;
+  }
+}
+
+async function runDetection() {
+  if (!state.detect.file) return;
+  state.detect.loading = true;
+  state.detect.error = null;
+  state.detect.result = null;
+  render();
+
+  const formData = new FormData();
+  formData.append('file', state.detect.file);
+
+  try {
+    const res = await fetch(`${API_BASE}/detect`, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.detail || `Request failed (${res.status})`);
+    }
+    state.detect.result = await res.json();
+  } catch (err) {
+    state.detect.error = err.message || 'Detection failed';
+  } finally {
+    state.detect.loading = false;
+    render();
+  }
+}
+
+function handleFileSelected(fileList) {
+  const file = fileList && fileList[0];
+  if (!file) return;
+  state.detect.file = file;
+  state.detect.result = null;
+  state.detect.error = null;
+  if (state.detect.previewUrl) URL.revokeObjectURL(state.detect.previewUrl);
+  state.detect.previewUrl = URL.createObjectURL(file);
+  render();
+}
+
+function handleButtonClick(btn) {
+  const action = btn.getAttribute('data-action');
+  const screen = btn.getAttribute('data-screen');
+  
+  if (screen) {
+    state.screen = screen;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  } else if (action === 'setMode') {
+    state.mode = btn.getAttribute('data-mode');
+    render();
+  } else if (action === 'updateConfig') {
+    const key = btn.getAttribute('data-key');
+    const input = document.querySelector(`input[name="${key}"]`);
+    if (input) {
+      state.cfg[key] = input.type === 'number' ? Number(input.value) : input.value;
+      render();
+    }
+  } else if (action === 'beginInspection') {
+    createInspection().then(result => {
+      if (result && result.id) {
+        state.live.inspectionId = result.id;
+        state.screen = 'monitor';
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelector('[data-screen="monitor"]').classList.add('active');
+        document.getElementById('monitorBtn').disabled = false;
+        render();
+      }
+    });
+  } else if (action === 'dismissError') {
+    state.globalError = null;
+    render();
+  } else if (action === 'stopInspection') {
+    if (state.live.inspectionId) {
+      const defects = { 'Crack': state.live.detections.length, 'Wear': 2 };
+      completeInspection(state.live.inspectionId, defects).then(() => {
+        state.live.inspectionId = null;
+        loadInspections();
+        state.screen = 'dashboard';
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelector('[data-screen="dashboard"]').classList.add('active');
+        render();
+      });
+    }
+  } else if (action === 'openReport') {
+    state.reportOpenId = btn.getAttribute('data-id');
+    render();
+  } else if (action === 'closeReport') {
+    state.reportOpenId = null;
+    render();
+  } else if (action === 'rcConnect') {
+    state.live.rc.connected = true;
+    render();
+  } else if (action === 'rcMove') {
+    console.log('RC move:', btn.getAttribute('data-dir'));
+  } else if (action === 'triggerFilePicker') {
+    const input = document.getElementById('detectFileInput');
+    if (input) input.click();
+  } else if (action === 'analyzeImage') {
+    runDetection();
+  } else if (action === 'resetDetect') {
+    if (state.detect.previewUrl) URL.revokeObjectURL(state.detect.previewUrl);
+    state.detect = { file: null, previewUrl: null, loading: false, result: null, error: null };
+    render();
+  }
+}
+
+function modeLabel(mode) {
+  const labels = { autonomous: 'Autonomous', rc: 'Remote Control', survey: 'Survey' };
+  return labels[mode] || mode;
+}
+
+function fmtKP(kp) {
+  return typeof kp === 'string' ? kp : (kp / 1000).toFixed(1) + '+000';
+}
+
+function renderDashboard() {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div class="h1">Dashboard</div>
+    <p class="lead">System overview and recent inspections</p>
+    <div class="grid grid-4" style="margin-bottom:20px;">
+      <div class="stat">
+        <div class="stat-label">Total Inspections</div>
+        <div class="stat-value">${state.session.length}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total Distance</div>
+        <div class="stat-value small">${(state.session.reduce((s, r) => s + (r.distance || 0), 0) / 1000).toFixed(1)} km</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">System Status</div>
+        <div class="stat-label"><span class="dot on"></span>Operational</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Last Inspection</div>
+        <div class="stat-value small">${state.session.length > 0 ? state.session[0].date : 'N/A'}</div>
+      </div>
+    </div>
+    ${state.session.length === 0 ? '<p style="color:var(--ink-300);">No inspections yet</p>' :
+      `<div class="card card-pad">
+        <div class="section-title">Recent Inspections</div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Mode</th><th>Section</th><th>Distance</th><th>Date</th></tr></thead>
+            <tbody>${state.session.map(r => `
+              <tr>
+                <td>${r.id}</td>
+                <td>${r.mode}</td>
+                <td>${r.section}</td>
+                <td>${r.distance}</td>
+                <td>${r.date}</td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>
+      </div>`
+    }
+  `;
+  return div;
+}
+
+function renderNewInspection() {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div class="h1">New Inspection</div>
+    <p class="lead">Configure inspection parameters</p>
+    <div class="grid grid-2">
+      <div class="card card-pad">
+        <div class="section-title">Inspection Mode</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="btn ${state.mode==='autonomous'?'btn-primary':'btn-outline'}" data-action="setMode" data-mode="autonomous">Autonomous</button>
+          <button class="btn ${state.mode==='rc'?'btn-primary':'btn-outline'}" data-action="setMode" data-mode="rc">Remote Control</button>
+          <button class="btn ${state.mode==='survey'?'btn-primary':'btn-outline'}" data-action="setMode" data-mode="survey">Survey</button>
+        </div>
+      </div>
+      <div class="card card-pad">
+        <div class="section-title">Configuration</div>
+        <div class="field" style="margin-bottom:12px;">
+          <label>Start KP</label>
+          <input type="text" name="startKP" value="${state.cfg.startKP}" placeholder="0+000">
+          <button class="btn btn-sm btn-primary" data-action="updateConfig" data-key="startKP" style="margin-top:4px;">Update</button>
+        </div>
+        <div class="field">
+          <label>Target Distance (m)</label>
+          <input type="number" name="targetDistance" value="${state.cfg.targetDistance}">
+          <button class="btn btn-sm btn-primary" data-action="updateConfig" data-key="targetDistance" style="margin-top:4px;">Update</button>
+        </div>
+      </div>
+    </div>
+    <div class="card card-pad" style="margin-top:16px;">
+      <button class="btn btn-lg btn-accent" data-action="beginInspection">Begin Inspection</button>
+    </div>
+  `;
+  return div;
+}
+
+function renderMonitor() {
+  const L = state.live;
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div><div class="h1">Live Monitor</div><p class="lead">${modeLabel(state.mode)} Mode</p></div>
+      <button class="btn btn-danger" data-action="stopInspection">Stop Inspection</button>
+    </div>
+    <div class="grid grid-4" style="margin-bottom:20px;">
+      <div class="stat">
+        <div class="stat-label">Chainage</div>
+        <div class="stat-value small">${fmtKP(L.chainage)}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Distance</div>
+        <div class="stat-value small">${(L.distance/1000).toFixed(2)} km</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Elapsed Time</div>
+        <div class="stat-value small">${Math.floor(L.elapsedSec/60)}m ${L.elapsedSec%60}s</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Detections</div>
+        <div class="stat-value">${L.detections.length}</div>
+      </div>
+    </div>
+    ${state.mode==='rc'?`
+      <div class="card card-pad" style="margin-bottom:20px;">
+        <div class="section-title">Remote Control</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" data-action="rcMove" data-dir="F">Forward</button>
+          <button class="btn btn-primary" data-action="rcMove" data-dir="B">Back</button>
+          <button class="btn btn-outline" data-action="rcMove" data-dir="S">Stop</button>
+          <button class="btn btn-primary" ${L.rc.connected?'':'data-action="rcConnect"'}>
+            ${L.rc.connected?'✓ Connected':'Connect'}
+          </button>
+        </div>
+      </div>
+    `:''}
+    <div class="card card-pad">
+      <div class="section-title">Detections (${L.detections.length})</div>
+      ${L.detections.length===0?'<p style="color:var(--ink-300);">No defects detected yet</p>':
+        `<div class="table-container">
+          <table class="data-table">
+            <thead><tr><th>Type</th><th>Severity</th><th>KP</th><th>Confidence</th></tr></thead>
+            <tbody>${L.detections.map(d=>`
+              <tr><td>${d.type}</td><td><span class="badge ${d.sev==='high'?'red':'amber'}">${d.sev}</span></td><td>${fmtKP(d.chainage)}</td><td>${d.conf}%</td></tr>
+            `).join('')}</tbody>
+          </table>
+        </div>`
+      }
+    </div>
+  `;
+  return div;
+}
+
+function renderReports() {
+  const div = document.createElement('div');
+  if(state.reportOpenId){
+    const rec = state.session.find(r=>r.id===state.reportOpenId);
+    if(rec){
+      div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <div><div class="h1">${rec.id}</div></div>
+          <button class="btn btn-outline" data-action="closeReport">Close</button>
+        </div>
+        <div class="grid grid-2" style="margin-bottom:20px;">
+          <div class="card card-pad">
+            <div class="section-title">Inspection Details</div>
+            <p><strong>Mode:</strong> ${rec.mode}</p>
+            <p><strong>Section:</strong> ${rec.section}</p>
+            <p><strong>Start KP:</strong> ${rec.startKP}</p>
+            <p><strong>End KP:</strong> ${rec.endKP || 'N/A'}</p>
+            <p><strong>Distance:</strong> ${rec.distance} m</p>
+            <p><strong>Date:</strong> ${rec.date}</p>
+          </div>
+          <div class="card card-pad">
+            <div class="section-title">Status</div>
+            <p><strong>Status:</strong> ${rec.status}</p>
+          </div>
+        </div>
+      `;
+    }
+  }else{
+    div.innerHTML = `
+      <div class="h1">Reports</div>
+      <p class="lead">Inspection history</p>
+      ${state.session.length===0?'<p style="color:var(--ink-300);">No reports available</p>':
+        `<div class="table-container">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Mode</th><th>Section</th><th>Distance</th><th>Date</th><th></th></tr></thead>
+            <tbody>${state.session.map(r=>`
+              <tr>
+                <td>${r.id}</td>
+                <td>${r.mode}</td>
+                <td>${r.section}</td>
+                <td>${r.distance}</td>
+                <td>${r.date}</td>
+                <td><button class="btn btn-sm btn-ghost" data-action="openReport" data-id="${r.id}">View</button></td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>`
+      }
+    `;
+  }
+  return div;
+}
+
+function renderAIDetect() {
+  const D = state.detect;
+  const div = document.createElement('div');
+
+  let previewBlock;
+  if (D.previewUrl) {
+    previewBlock = `
+      <div class="preview-wrap">
+        <img class="preview-img" src="${D.previewUrl}" alt="Uploaded track image">
+        <div style="flex:1;min-width:220px;">
+          <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <button class="btn btn-accent" data-action="analyzeImage" ${D.loading ? 'disabled' : ''}>
+              ${D.loading ? '<span class="spinner"></span> Analyzing…' : 'Analyze Image'}
+            </button>
+            <button class="btn btn-outline" data-action="resetDetect" ${D.loading ? 'disabled' : ''}>Clear</button>
+          </div>
+          ${D.error ? `<div class="badge red" style="margin-bottom:10px;">${D.error}</div>` : ''}
+          ${D.result ? `
+            <div class="result-headline">
+              <span class="rh-class">${D.result.predicted_class}</span>
+              <span class="rh-conf">${D.result.confidence}% confidence</span>
+            </div>
+            <div class="section-title">Class probabilities</div>
+            ${Object.entries(D.result.all_class_probs).map(([cls, pct], i) => `
+              <div class="prob-row">
+                <div class="prob-label">${cls}</div>
+                <div class="prob-track"><div class="prob-fill ${i===0?'top':''}" style="width:${pct}%;"></div></div>
+                <div class="prob-pct">${pct}%</div>
+              </div>
+            `).join('')}
+          ` : (D.loading ? '' : '<p style="color:var(--ink-300);">Press Analyze to run the model on this image.</p>')}
+        </div>
+      </div>
+    `;
+  } else {
+    previewBlock = `
+      <div class="dropzone" data-action="triggerFilePicker">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        <div class="dz-title">Upload or take a track photo</div>
+        <div class="dz-sub">Tap to choose a file, or use your camera on mobile</div>
+      </div>
+    `;
+  }
+
+  div.innerHTML = `
+    <div class="h1">AI Defect Detection</div>
+    <p class="lead">Proof-of-concept classifier (YOLOv8n-cls, ~87% val accuracy) — trained to classify a track photo by condition.</p>
+    <div class="hint-banner">This model classifies the whole photo (e.g. defective vs. normal track) — it does not draw boxes around individual defects. Treat results as a POC signal, not a certified inspection.</div>
+    <div class="card card-pad">
+      ${previewBlock}
+    </div>
+    <input type="file" id="detectFileInput" accept="image/*" capture="environment" style="display:none;">
+  `;
+  return div;
+}
+
+function renderScreen() {
+  switch(state.screen) {
+    case 'dashboard': return renderDashboard();
+    case 'new-inspection': return renderNewInspection();
+    case 'monitor': return renderMonitor();
+    case 'reports': return renderReports();
+    case 'ai-detect': return renderAIDetect();
+    default: return renderDashboard();
+  }
+}
+
+function wireGlobalEvents() {
+  document.querySelectorAll('[data-action], [data-screen]').forEach(btn => {
+    btn.removeEventListener('click', handleButtonClick);
+    btn.addEventListener('click', () => handleButtonClick(btn));
+  });
+  const fileInput = document.getElementById('detectFileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => handleFileSelected(e.target.files));
+  }
+}
+
+function updatePageTitle() {
+  const titles = {
+    'dashboard': 'Dashboard',
+    'new-inspection': 'New Inspection',
+    'monitor': 'Live Monitor',
+    'reports': 'Reports',
+    'ai-detect': 'AI Detection'
+  };
+  document.getElementById('pageTitle').textContent = titles[state.screen] || 'Dashboard';
+}
+
+function render() {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  if (state.globalError) {
+    const banner = document.createElement('div');
+    banner.className = 'error-banner';
+    banner.innerHTML = `<span>${state.globalError}</span><button data-action="dismissError">&times;</button>`;
+    content.appendChild(banner);
+  }
+  content.appendChild(renderScreen());
+  wireGlobalEvents();
+  updatePageTitle();
+}
+
+// Initialize
+loadStats().then(() => render());
+</script>
+</body>
+</html>

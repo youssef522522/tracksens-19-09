@@ -1,0 +1,11 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pillow==10.4.0
+# Pinned to match the Dockerfile. If installing locally, add:
+#   pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
+# first, or ultralytics will pull the newest torch — app.py patches around
+# torch's weights_only default either way, so newer torch also works.
+torch==2.3.1
+torchvision==0.18.1
+ultralytics==8.2.103
